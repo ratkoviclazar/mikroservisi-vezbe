@@ -41,7 +41,7 @@ Tehnološki stek
 
 ### Frontend
 
-*   **React.js**
+*   **React**
     
     *   Komponentni pristup izradi korisničkog interfejsa
         
