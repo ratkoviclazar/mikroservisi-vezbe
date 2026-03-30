@@ -89,13 +89,3 @@ Zadužen za predavače:
     
 *   povezivanje sa događajima
     
-
-### 4\. Registracija Service
-
-Upravlja prijavama učesnika:
-
-*   evidencija prijava
-    
-*   povezivanje učesnika sa događajem
-    
-*   kontrola kapaciteta događaja
