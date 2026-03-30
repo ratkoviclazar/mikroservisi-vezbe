@@ -1,0 +1,50 @@
+﻿@model EventViewModel
+@{
+    ViewData["Title"] = "Izmeni događaj";
+}
+<h2>Izmeni događaj</h2>
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <div class="form-group">
+        <label asp-for="Name">Naziv</label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="Agenda">Agenda</label>
+        <input asp-for="Agenda" class="form-control" />
+        <span asp-validation-for="Agenda" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="DateTime">Datum i vreme</label>
+        <input asp-for="DateTime" class="form-control" type="datetime-local" />
+        <span asp-validation-for="DateTime" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="DurationInHours">Trajanje (h)</label>
+        <input asp-for="DurationInHours" class="form-control" type="number" step="0.01" />
+        <span asp-validation-for="DurationInHours" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="Price">Cena</label>
+        <input asp-for="Price" class="form-control" type="number" step="0.01" />
+        <span asp-validation-for="Price" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="LocationId">Lokacija</label>
+        <select asp-for="LocationId" class="form-control" asp-items="ViewBag.Locations"></select>
+        <span asp-validation-for="LocationId" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="TypeId">Tip</label>
+        <select asp-for="TypeId" class="form-control" asp-items="ViewBag.Types"></select>
+        <span asp-validation-for="TypeId" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-primary">Sačuvaj</button>
+    <a asp-action="Index" class="btn btn-secondary">Nazad</a>
+</form>
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

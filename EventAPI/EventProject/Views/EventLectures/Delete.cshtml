@@ -1,0 +1,17 @@
+﻿@model EventLectureViewModel
+@{
+    ViewData["Title"] = "Ukloni predavača";
+}
+<h2>Ukloni predavača</h2>
+<p>Da li ste sigurni da želite da uklonite predavača <strong>@Model.LecturerName</strong> sa događaja <strong>@Model.EventName</strong>?</p>
+<dl class="row">
+    <dt class="col-sm-3">Datum i vreme</dt>
+    <dd class="col-sm-9">@Model.DateTime.ToString("g")</dd>
+    <dt class="col-sm-3">Trajanje (h)</dt>
+    <dd class="col-sm-9">@Model.DurationInHours</dd>
+</dl>
+<form asp-action="Delete" method="post">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">Ukloni</button>
+    <a asp-action="Index" asp-route-eventId="@Model.EventId" class="btn btn-secondary">Nazad</a>
+</form>

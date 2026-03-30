@@ -1,0 +1,42 @@
+﻿@model IEnumerable<EventLectureViewModel>
+@{
+    ViewData["Title"] = "Predavanja";
+}
+<h2 class="mb-2">Predavanja — @ViewBag.EventName</h2>
+<a class="btn btn-primary mb-3" asp-action="Create" asp-route-eventId="@ViewBag.EventId">
+    Dodaj predavača
+</a>
+<a class="btn btn-secondary mb-3" asp-controller="Events" asp-action="Index">
+    Nazad na događaje
+</a>
+
+@if (!Model.Any())
+{
+    <p class="text-muted">Nema dodeljenih predavača za ovaj događaj.</p>
+}
+else
+{
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>Predavač</th>
+                <th>Datum i vreme</th>
+                <th>Trajanje (h)</th>
+                <th>Akcije</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var el in Model)
+            {
+                <tr>
+                    <td>@el.LecturerName</td>
+                    <td>@el.DateTime.ToString("g")</td>
+                    <td>@el.DurationInHours</td>
+                    <td>
+                        <a class="btn btn-danger btn-sm" asp-action="Delete" asp-route-id="@el.Id">Ukloni</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

@@ -1,0 +1,17 @@
+﻿@model LecturerViewModel
+@{
+    ViewData["Title"] = "Detalji predavača";
+}
+<h2>Detalji predavača</h2>
+<dl class="row">
+    <dt class="col-sm-3">Ime</dt>
+    <dd class="col-sm-9">@Model.FirstName</dd>
+    <dt class="col-sm-3">Prezime</dt>
+    <dd class="col-sm-9">@Model.LastName</dd>
+    <dt class="col-sm-3">Titula</dt>
+    <dd class="col-sm-9">@Model.Title</dd>
+    <dt class="col-sm-3">Oblast ekspertize</dt>
+    <dd class="col-sm-9">@Model.ExpertiseArea</dd>
+</dl>
+<a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Izmeni</a>
+<a asp-action="Index" class="btn btn-secondary">Nazad</a>
