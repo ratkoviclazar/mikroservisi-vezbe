@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace EventAPI.Migrations
 {
-    [DbContext(typeof(EventDbContext))]
+    [DbContext(typeof(EventsDbContext))]
     [Migration("20260330134638_db-seed")]
     partial class dbseed
     {

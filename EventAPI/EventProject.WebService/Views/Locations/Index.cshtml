@@ -1,0 +1,30 @@
+﻿@model IEnumerable<LocationViewModel>
+@{
+    ViewData["Title"] = "Lokacije";
+}
+<h2 class="mb-4">Lokacije</h2>
+<a class="btn btn-primary mb-3" asp-action="Create">Nova lokacija</a>
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Naziv</th>
+            <th>Adresa</th>
+            <th>Kapacitet</th>
+            <th>Akcije</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var l in Model)
+        {
+            <tr>
+                <td>@l.Name</td>
+                <td>@l.Address</td>
+                <td>@l.Capacity</td>
+                <td>
+                    <a class="btn btn-warning btn-sm" asp-action="Edit" asp-route-id="@l.Id">Izmeni</a>
+                    <a class="btn btn-danger btn-sm" asp-action="Delete" asp-route-id="@l.Id">Obriši</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

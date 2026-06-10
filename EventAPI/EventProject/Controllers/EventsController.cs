@@ -1,113 +1,98 @@
 ﻿using EventAPI.Data;
 using EventAPI.Domains;
+using EventProject.DTO.DTOs;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 
-public class EventsController : Controller
-{
-    private readonly EventDbContext _context;
+namespace EventAPI.Controllers;
 
-    public EventsController(EventDbContext context)
+[ApiController]
+[Route("api/events")]
+public class EventsController : ControllerBase
+{
+    private readonly EventsDbContext _context;
+
+    public EventsController(EventsDbContext context)
     {
         _context = context;
     }
 
-    public IActionResult Index()
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<EventDetailsDto>>> GetAll()
     {
-        var events = _context.Events
-            .Include(e => e.Location)
-            .Include(e => e.EventType)
-            .Select(e => new EventViewModel
-            {
-                Id = e.Id,
-                Name = e.Name,
-                Agenda = e.Agenda,
-                DateTime = e.DateTime,
-                DurationInHours = e.DurationInHours,
-                Price = e.Price,
-                LocationId = e.LocationId,
-                LocationName = e.Location.Name,
-                TypeId = e.TypeId,
-                TypeName = e.EventType.Name
-            }).ToList();
+        var events = await _context.Events
+            .Include(x => x.EventLectures)
+            .ToListAsync();
 
-        return View(events);
-    }
+        var result = new List<EventDetailsDto>();
 
-    public IActionResult Details(int id)
-    {
-        var ev = _context.Events
-            .Include(e => e.Location)
-            .Include(e => e.EventType)
-            .Where(e => e.Id == id)
-            .Select(e => new EventViewModel
-            {
-                Id = e.Id,
-                Name = e.Name,
-                Agenda = e.Agenda,
-                DateTime = e.DateTime,
-                DurationInHours = e.DurationInHours,
-                Price = e.Price,
-                LocationId = e.LocationId,
-                LocationName = e.Location.Name,
-                TypeId = e.TypeId,
-                TypeName = e.EventType.Name
-            }).FirstOrDefault();
-
-        if (ev == null) return NotFound();
-
-        return View(ev);
-    }
-
-    public IActionResult Create()
-    {
-        ViewBag.Locations = _context.Locations.Select(l => new SelectListItem { Value = l.Id.ToString(), Text = l.Name }).ToList();
-        ViewBag.Types = _context.EventTypes.Select(t => new SelectListItem { Value = t.Id.ToString(), Text = t.Name }).ToList();
-        return View();
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public IActionResult Create(EventViewModel model)
-    {
-        if (ModelState.IsValid)
+        foreach (var ev in events)
         {
-            var ev = new Event
+            var location = await _context.LocationSnapshots
+                .FirstOrDefaultAsync(x => x.ExternalId == ev.LocationId);
+
+            var eventType = await _context.EventTypeSnapshots
+                .FirstOrDefaultAsync(x => x.ExternalId == ev.TypeId);
+
+            result.Add(new EventDetailsDto
             {
-                Name = model.Name,
-                Agenda = model.Agenda,
-                DateTime = model.DateTime,
-                DurationInHours = model.DurationInHours,
-                Price = model.Price,
-                LocationId = model.LocationId,
-                TypeId = model.TypeId
-            };
-            _context.Events.Add(ev);
-            _context.SaveChanges();
-            return RedirectToAction(nameof(Index));
-        }
-        if (!ModelState.IsValid)
-        {
-            foreach (var state in ModelState)
-            {
-                foreach (var error in state.Value.Errors)
+                Id = ev.Id,
+                Name = ev.Name,
+                Agenda = ev.Agenda,
+                DateTime = ev.DateTime,
+                DurationInHours = ev.DurationInHours,
+                Price = ev.Price,
+                TypeId = ev.TypeId,
+                LocationId = ev.LocationId,
+                Location = location == null
+                    ? null
+                    : new LocationDto
+                    {
+                        Id = location.ExternalId,
+                        Name = location.Name,
+                        Address = location.Address,
+                        Capacity = location.Capacity
+                    },
+
+                EventType = eventType == null
+                    ? null
+                    : new EventTypeDto
+                    {
+                        Id = eventType.ExternalId,
+                        Name = eventType.Name
+                    },
+
+                EventLectures = ev.EventLectures.Select(x => new EventLectureDto
                 {
-                    Console.WriteLine($"Field: {state.Key}, Error: {error.ErrorMessage}");
-                }
-            }
+                    Id = x.Id,
+                    EventId = x.EventId,
+                    LecturerId = x.LecturerId,
+                    DateTime = x.DateTime,
+                    DurationInHours = x.DurationInHours
+                }).ToList()
+            });
         }
-        ViewBag.Locations = _context.Locations.Select(l => new SelectListItem { Value = l.Id.ToString(), Text = l.Name }).ToList();
-        ViewBag.Types = _context.EventTypes.Select(t => new SelectListItem { Value = t.Id.ToString(), Text = t.Name }).ToList();
-        return View(model);
+
+        return Ok(result);
     }
 
-    public IActionResult Edit(int id)
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<EventDetailsDto>> GetById(int id)
     {
-        var ev = _context.Events.Find(id);
-        if (ev == null) return NotFound();
+        var ev = await _context.Events
+            .Include(x => x.EventLectures)
+            .FirstOrDefaultAsync(x => x.Id == id);
 
-        var model = new EventViewModel
+        if (ev == null)
+            return NotFound();
+
+        var location = await _context.LocationSnapshots
+            .FirstOrDefaultAsync(x => x.ExternalId == ev.LocationId);
+
+        var eventType = await _context.EventTypeSnapshots
+            .FirstOrDefaultAsync(x => x.ExternalId == ev.TypeId);
+
+        var result = new EventDetailsDto
         {
             Id = ev.Id,
             Name = ev.Name,
@@ -115,72 +100,117 @@ public class EventsController : Controller
             DateTime = ev.DateTime,
             DurationInHours = ev.DurationInHours,
             Price = ev.Price,
+            TypeId = ev.TypeId,
             LocationId = ev.LocationId,
-            TypeId = ev.TypeId
+            Location = location == null
+                ? null
+                : new LocationDto
+                {
+                    Id = location.ExternalId,
+                    Name = location.Name,
+                    Address = location.Address,
+                    Capacity = location.Capacity
+                },
+
+            EventType = eventType == null
+                ? null
+                : new EventTypeDto
+                {
+                    Id = eventType.ExternalId,
+                    Name = eventType.Name
+                },
+
+            EventLectures = ev.EventLectures.Select(x => new EventLectureDto
+            {
+                Id = x.Id,
+                EventId = x.EventId,
+                LecturerId = x.LecturerId,
+                DateTime = x.DateTime,
+                DurationInHours = x.DurationInHours
+            }).ToList()
         };
-        ViewBag.Locations = _context.Locations.Select(l => new SelectListItem { Value = l.Id.ToString(), Text = l.Name }).ToList();
-        ViewBag.Types = _context.EventTypes.Select(t => new SelectListItem { Value = t.Id.ToString(), Text = t.Name }).ToList();
-        return View(model);
+
+        return Ok(result);
     }
 
     [HttpPost]
-    [ValidateAntiForgeryToken]
-    public IActionResult Edit(int id, EventViewModel model)
+    public async Task<ActionResult<EventDetailsDto>> Create(CreateEventDto dto)
     {
-        if (id != model.Id) return NotFound();
-        if (ModelState.IsValid)
+        if (dto.DurationInHours <= 0)
+            ModelState.AddModelError(nameof(dto.DurationInHours), "Duration must be greater than 0.");
+
+        if (dto.Price < 0)
+            ModelState.AddModelError(nameof(dto.Price), "Price cannot be negative.");
+
+        var locationExists = await _context.LocationSnapshots
+            .AnyAsync(x => x.ExternalId == dto.LocationId);
+
+        if (!locationExists)
+            ModelState.AddModelError(nameof(dto.LocationId), "Location does not exist.");
+
+        var eventTypeExists = await _context.EventTypeSnapshots
+            .AnyAsync(x => x.ExternalId == dto.TypeId);
+
+        if (!eventTypeExists)
+            ModelState.AddModelError(nameof(dto.TypeId), "Event type does not exist.");
+
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        var entity = new Event
         {
-            var ev = _context.Events.Find(id);
-            if (ev == null) return NotFound();
+            Name = dto.Name,
+            Agenda = dto.Agenda,
+            DateTime = dto.DateTime,
+            DurationInHours = dto.DurationInHours,
+            Price = dto.Price,
+            TypeId = dto.TypeId,
+            LocationId = dto.LocationId
+        };
 
-            ev.Name = model.Name;
-            ev.Agenda = model.Agenda;
-            ev.DateTime = model.DateTime;
-            ev.DurationInHours = model.DurationInHours;
-            ev.DurationInHours = model.DurationInHours;
-            ev.LocationId = model.LocationId;
-            ev.TypeId = model.TypeId;
+        _context.Events.Add(entity);
 
-            _context.SaveChanges();
-            return RedirectToAction(nameof(Index));
-        }
-        ViewBag.Locations = _context.Locations.Select(l => new SelectListItem { Value = l.Id.ToString(), Text = l.Name }).ToList();
-        ViewBag.Types = _context.EventTypes.Select(t => new SelectListItem { Value = t.Id.ToString(), Text = t.Name }).ToList();
-        return View(model);
+        await _context.SaveChangesAsync();
+
+        return CreatedAtAction(
+            nameof(GetById),
+            new { id = entity.Id },
+            new { entity.Id });
     }
 
-    public IActionResult Delete(int id)
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int id, UpdateEventDto dto)
     {
-        var ev = _context.Events
-            .Include(e => e.Location)
-            .Include(e => e.EventType)
-            .Where(e => e.Id == id)
-            .Select(e => new EventViewModel
-            {
-                Id = e.Id,
-                Name = e.Name,
-                Agenda = e.Agenda,
-                DateTime = e.DateTime,
-                DurationInHours = e.DurationInHours,
-                Price = e.Price,
-                LocationName = e.Location.Name,
-                TypeName = e.EventType.Name
-            }).FirstOrDefault();
+        var entity = await _context.Events.FindAsync(id);
 
-        if (ev == null) return NotFound();
+        if (entity == null)
+            return NotFound();
 
-        return View(ev);
+        entity.Name = dto.Name;
+        entity.Agenda = dto.Agenda;
+        entity.DateTime = dto.DateTime;
+        entity.DurationInHours = dto.DurationInHours;
+        entity.Price = dto.Price;
+        entity.TypeId = dto.TypeId;
+        entity.LocationId = dto.LocationId;
+
+        await _context.SaveChangesAsync();
+
+        return NoContent();
     }
 
-    [HttpPost, ActionName("Delete")]
-    [ValidateAntiForgeryToken]
-    public IActionResult DeleteConfirmed(int id)
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id)
     {
-        var ev = _context.Events.Find(id);
-        if (ev == null) return NotFound();
+        var entity = await _context.Events.FindAsync(id);
 
-        _context.Events.Remove(ev);
-        _context.SaveChanges();
-        return RedirectToAction(nameof(Index));
+        if (entity == null)
+            return NotFound();
+
+        _context.Events.Remove(entity);
+
+        await _context.SaveChangesAsync();
+
+        return NoContent();
     }
 }

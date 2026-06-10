@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace EventAPI.Migrations
 {
-    [DbContext(typeof(EventDbContext))]
+    [DbContext(typeof(EventsDbContext))]
     partial class EventDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
@@ -32,14 +32,15 @@ namespace EventAPI.Migrations
 
                     b.Property<string>("Agenda")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
 
                     b.Property<DateTime>("DateTime")
                         .HasColumnType("datetime2");
 
                     b.Property<decimal>("DurationInHours")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<int>("LocationId")
                         .HasColumnType("int");
@@ -57,24 +58,7 @@ namespace EventAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("LocationId");
-
-                    b.HasIndex("TypeId");
-
                     b.ToTable("Events", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Agenda = "Tech topics",
-                            DateTime = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DurationInHours = 5m,
-                            LocationId = 1,
-                            Name = "Tech Conference",
-                            Price = 100m,
-                            TypeId = 1
-                        });
                 });
 
             modelBuilder.Entity("EventAPI.Domains.EventLecture", b =>
@@ -89,7 +73,8 @@ namespace EventAPI.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<decimal>("DurationInHours")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<int>("EventId")
                         .HasColumnType("int");
@@ -101,25 +86,10 @@ namespace EventAPI.Migrations
 
                     b.HasIndex("EventId");
 
-                    b.HasIndex("LecturerId");
-
-                    b.HasIndex("DateTime", "EventId", "LecturerId")
-                        .IsUnique();
-
                     b.ToTable("EventLectures", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            DateTime = new DateTime(2025, 5, 1, 10, 0, 0, 0, DateTimeKind.Unspecified),
-                            DurationInHours = 2m,
-                            EventId = 1,
-                            LecturerId = 1
-                        });
                 });
 
-            modelBuilder.Entity("EventAPI.Domains.EventType", b =>
+            modelBuilder.Entity("EventAPI.Domains.EventTypeSnapshot", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -127,29 +97,26 @@ namespace EventAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("ExternalId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
-                    b.ToTable("Types", (string)null);
+                    b.HasIndex("ExternalId")
+                        .IsUnique();
 
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Name = "Seminar"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Name = "Workshop"
-                        });
+                    b.ToTable("EventTypeSnapshots", (string)null);
                 });
 
-            modelBuilder.Entity("EventAPI.Domains.Lecturer", b =>
+            modelBuilder.Entity("EventAPI.Domains.LecturerSnapshot", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -162,45 +129,36 @@ namespace EventAPI.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<int>("ExternalId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Surname")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Lecturers", (string)null);
+                    b.HasIndex("ExternalId")
+                        .IsUnique();
 
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            ExpertiseArea = "IT",
-                            Name = "John",
-                            Surname = "Doe",
-                            Title = "Professor"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            ExpertiseArea = "AI",
-                            Name = "Jane",
-                            Surname = "Smith",
-                            Title = "Dr"
-                        });
+                    b.ToTable("LecturerSnapshots", (string)null);
                 });
 
-            modelBuilder.Entity("EventAPI.Domains.Location", b =>
+            modelBuilder.Entity("EventAPI.Domains.LocationSnapshot", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -210,10 +168,13 @@ namespace EventAPI.Migrations
 
                     b.Property<string>("Address")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<int>("Capacity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ExternalId")
                         .HasColumnType("int");
 
                     b.Property<string>("Name")
@@ -221,44 +182,15 @@ namespace EventAPI.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
-                    b.ToTable("Locations", (string)null);
+                    b.HasIndex("ExternalId")
+                        .IsUnique();
 
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Address = "Main Street 1",
-                            Capacity = 100,
-                            Name = "Hall A"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Address = "Main Street 2",
-                            Capacity = 200,
-                            Name = "Hall B"
-                        });
-                });
-
-            modelBuilder.Entity("EventAPI.Domains.Event", b =>
-                {
-                    b.HasOne("EventAPI.Domains.Location", "Location")
-                        .WithMany("Events")
-                        .HasForeignKey("LocationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("EventAPI.Domains.EventType", "EventType")
-                        .WithMany("Events")
-                        .HasForeignKey("TypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("EventType");
-
-                    b.Navigation("Location");
+                    b.ToTable("LocationSnapshots", (string)null);
                 });
 
             modelBuilder.Entity("EventAPI.Domains.EventLecture", b =>
@@ -269,35 +201,12 @@ namespace EventAPI.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EventAPI.Domains.Lecturer", "Lecturer")
-                        .WithMany("EventLectures")
-                        .HasForeignKey("LecturerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Event");
-
-                    b.Navigation("Lecturer");
                 });
 
             modelBuilder.Entity("EventAPI.Domains.Event", b =>
                 {
                     b.Navigation("EventLectures");
-                });
-
-            modelBuilder.Entity("EventAPI.Domains.EventType", b =>
-                {
-                    b.Navigation("Events");
-                });
-
-            modelBuilder.Entity("EventAPI.Domains.Lecturer", b =>
-                {
-                    b.Navigation("EventLectures");
-                });
-
-            modelBuilder.Entity("EventAPI.Domains.Location", b =>
-                {
-                    b.Navigation("Events");
                 });
 #pragma warning restore 612, 618
         }

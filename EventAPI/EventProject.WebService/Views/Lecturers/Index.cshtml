@@ -1,0 +1,33 @@
+﻿@model IEnumerable<LecturerViewModel>
+@{
+    ViewData["Title"] = "Predavači";
+}
+<h2 class="mb-4">Predavači</h2>
+<a class="btn btn-primary mb-3" asp-action="Create">Novi predavač</a>
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Ime</th>
+            <th>Prezime</th>
+            <th>Titula</th>
+            <th>Oblast ekspertize</th>
+            <th>Akcije</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var l in Model)
+        {
+            <tr>
+                <td>@l.FirstName</td>
+                <td>@l.LastName</td>
+                <td>@l.Title</td>
+                <td>@l.ExpertiseArea</td>
+                <td>
+                    <a class="btn btn-info btn-sm" asp-action="Details" asp-route-id="@l.Id">Detalji</a>
+                    <a class="btn btn-warning btn-sm" asp-action="Edit" asp-route-id="@l.Id">Izmeni</a>
+                    <a class="btn btn-danger btn-sm" asp-action="Delete" asp-route-id="@l.Id">Obriši</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

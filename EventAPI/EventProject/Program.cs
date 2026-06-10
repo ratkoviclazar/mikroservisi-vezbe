@@ -2,7 +2,7 @@ using EventAPI.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddSqlServer<EventDbContext>(builder.Configuration.GetConnectionString("DefaultConnection"));
+builder.Services.AddSqlServer<EventsDbContext>(builder.Configuration.GetConnectionString("DefaultConnection"));
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 

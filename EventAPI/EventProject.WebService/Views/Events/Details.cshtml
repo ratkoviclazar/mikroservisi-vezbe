@@ -1,0 +1,23 @@
+﻿@model EventViewModel
+@{
+    ViewData["Title"] = "Detalji događaja";
+}
+<h2>Detalji događaja</h2>
+<dl class="row">
+    <dt class="col-sm-3">Naziv</dt>
+    <dd class="col-sm-9">@Model.Name</dd>
+    <dt class="col-sm-3">Agenda</dt>
+    <dd class="col-sm-9">@Model.Agenda</dd>
+    <dt class="col-sm-3">Datum i vreme</dt>
+    <dd class="col-sm-9">@Model.DateTime.ToString("g")</dd>
+    <dt class="col-sm-3">Trajanje (h)</dt>
+    <dd class="col-sm-9">@Model.DurationInHours</dd>
+    <dt class="col-sm-3">Cena</dt>
+    <dd class="col-sm-9">@Model.Price</dd>
+    <dt class="col-sm-3">Lokacija</dt>
+    <dd class="col-sm-9">@Model.LocationName</dd>
+    <dt class="col-sm-3">Tip</dt>
+    <dd class="col-sm-9">@Model.TypeName</dd>
+</dl>
+<a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Izmeni</a>
+<a asp-action="Index" class="btn btn-secondary">Nazad</a>
