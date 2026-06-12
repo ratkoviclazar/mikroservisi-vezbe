@@ -10,6 +10,8 @@ namespace EventAPI.Controllers;
 [Route("api/events")]
 public class EventsController : ControllerBase
 {
+    private static int _counter = 0;
+    private static int _timeoutCounter = 0;
     private readonly EventsDbContext _context;
 
     public EventsController(EventsDbContext context)
@@ -20,6 +22,14 @@ public class EventsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<EventDetailsDto>>> GetAll()
     {
+        _counter++;
+
+        if (_counter % 10 != 0)
+        {
+            Console.WriteLine("Simulating server error for testing purposes.");
+            return StatusCode(500, "Simulated server error");
+        }
+
         var events = await _context.Events
             .Include(x => x.EventLectures)
             .ToListAsync();
@@ -79,6 +89,12 @@ public class EventsController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<ActionResult<EventDetailsDto>> GetById(int id)
     {
+        _timeoutCounter++;
+        if (_timeoutCounter % 2 == 0)
+        {
+            Console.WriteLine("Simulating timeout for testing purposes.");
+            await Task.Delay(7000);
+        }
         var ev = await _context.Events
             .Include(x => x.EventLectures)
             .FirstOrDefaultAsync(x => x.Id == id);

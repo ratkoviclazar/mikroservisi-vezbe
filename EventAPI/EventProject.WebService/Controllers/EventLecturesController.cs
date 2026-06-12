@@ -1,4 +1,5 @@
-﻿using EventAPI.WebPlatformService.Services;
+﻿using EventAPI.WebPlatformService.Patterns;
+using EventAPI.WebPlatformService.Services;
 using EventProject.DTO.DTOs;
 using EventProject.LecturerService.Models;
 using EventProject.WebService.Services;
@@ -43,6 +44,16 @@ namespace EventAPI.WebPlatformService.Controllers
                         LecturerName = $"{l.Lecturer?.Name} {l.Lecturer?.Surname}"
                     }));
             }
+            catch (CircuitBreakerOpenException ex)
+            {
+                _logger.LogWarning(ex,
+                    "EventService circuit breaker is open (lectures).");
+
+                ViewBag.ErrorMessage =
+                    "Event service is not available at the moment.";
+
+                return View(new List<EventLectureViewModel>());
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading lectures for event {Id}", eventId);
@@ -52,23 +63,41 @@ namespace EventAPI.WebPlatformService.Controllers
         [HttpGet("create")]
         public async Task<IActionResult> Create(int eventId)
         {
-            var eventData = await _eventApiClient.GetEventByIdAsync(eventId);
-
-            var lecturers = await _lecturerApiClient.GetAllLecturersAsync()
-                    ?? new List<LecturerDto>();
-
-            ViewBag.EventId = eventId;
-            ViewBag.Event = eventData != null ? $"{eventData.Name} ({eventData.DateTime:dd MMM yyyy})" : "Unknown Event";
-
-            ViewBag.AllLecturers = lecturers
-                .Select(l => new { l.Id, FullName = $"{l.Name} {l.Surname}" })
-                .ToList();
-
-
-            return View(new EventLectureViewModel
+            try
             {
-                EventId = eventId,
-            });
+
+                var eventData = await _eventApiClient.GetEventByIdAsync(eventId);
+
+                var lecturers = await _lecturerApiClient.GetAllLecturersAsync()
+                        ?? new List<LecturerDto>();
+
+                ViewBag.EventId = eventId;
+                ViewBag.Event = eventData != null ? $"{eventData.Name} ({eventData.DateTime:dd MMM yyyy})" : "Unknown Event";
+
+                ViewBag.AllLecturers = lecturers
+                    .Select(l => new { l.Id, FullName = $"{l.Name} {l.Surname}" })
+                    .ToList();
+
+
+                return View(new EventLectureViewModel
+                {
+                    EventId = eventId,
+                });
+            }
+            catch (CircuitBreakerOpenException ex)
+            {
+                _logger.LogWarning(ex,
+                    "EventService circuit breaker is open (create lecture).");
+
+                return RedirectToAction(nameof(Index), new { eventId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Error loading create lecture page for event {Id}", eventId);
+
+                return RedirectToAction(nameof(Index), new { eventId });
+            }
         }
 
         [HttpPost("create")]
@@ -90,6 +119,16 @@ namespace EventAPI.WebPlatformService.Controllers
 
                 return RedirectToAction(nameof(Index), new { eventId });
             }
+            catch (CircuitBreakerOpenException ex)
+            {
+                _logger.LogWarning(ex,
+                    "EventService circuit breaker is open (create lecture).");
+
+                TempData["ErrorMessage"] =
+                    "Event service is not available at the moment.";
+
+                return RedirectToAction(nameof(Index), new { eventId });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating lecture for event {Id}", eventId);
@@ -103,6 +142,16 @@ namespace EventAPI.WebPlatformService.Controllers
             try
             {
                 await _eventApiClient.DeleteEventLectureAsync(lectureId);
+                return RedirectToAction(nameof(Index), new { eventId });
+            }
+            catch (CircuitBreakerOpenException ex)
+            {
+                _logger.LogWarning(ex,
+                    "EventService circuit breaker is open (delete lecture).");
+
+                TempData["ErrorMessage"] =
+                    "Event service is not available at the moment.";
+
                 return RedirectToAction(nameof(Index), new { eventId });
             }
             catch (Exception ex)

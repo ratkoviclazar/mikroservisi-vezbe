@@ -1,4 +1,5 @@
-﻿using EventAPI.WebPlatformService.Services;
+﻿using EventAPI.WebPlatformService.Patterns;
+using EventAPI.WebPlatformService.Services;
 using EventProject.DTO.DTOs;
 using EventProject.WebService.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -28,8 +29,11 @@ namespace EventProject.WebService.Controllers
         {
             try
             {
+                var locations = await _referenceApiClient.GetAllLocationsAsync();
+                var types = await _referenceApiClient.GetAllEventTypesAsync();
                 var events = await _eventApiClient.GetAllEventsAsync();
-                return View(events.OrderBy(e => e.Name)
+                var model = events
+                    .OrderBy(e => e.Name)
                     .Select(e => new EventViewModel
                     {
                         Id = e.Id,
@@ -39,10 +43,20 @@ namespace EventProject.WebService.Controllers
                         DurationInHours = e.DurationInHours,
                         Price = e.Price,
                         TypeId = e.TypeId,
-                        TypeName = e.EventType?.Name,
+                        TypeName = types.FirstOrDefault(t => t.Id == e.TypeId)?.Name ?? string.Empty,
                         LocationId = e.LocationId,
-                        LocationName = e.Location?.Name
-                    }));
+                        LocationName = locations.FirstOrDefault(l => l.Id == e.LocationId)?.Name ?? string.Empty,
+                    });
+
+                return View(model);
+            }
+            catch (CircuitBreakerOpenException ex)
+            {
+                _logger.LogWarning(ex, "EventService circuit breaker is open.");
+
+                ViewBag.ErrorMessage = "Event service is not available at the moment.";
+
+                return View(new List<EventViewModel>());
             }
             catch (Exception ex)
             {
@@ -71,6 +85,14 @@ namespace EventProject.WebService.Controllers
                     LocationId = ev.LocationId,
                     LocationName = ev.Location?.Name
                 });
+            }
+            catch (CircuitBreakerOpenException ex)
+            {
+                _logger.LogWarning(ex, "EventService circuit breaker is open.");
+
+                ViewBag.ErrorMessage = "Event service is not available at the moment.";
+
+                return View(new EventViewModel());
             }
             catch (Exception ex)
             {
@@ -106,6 +128,14 @@ namespace EventProject.WebService.Controllers
                 var created = await _eventApiClient.CreateEventAsync(createDto);
 
                 return RedirectToAction(nameof(Details), new { id = created.Id });
+            }
+            catch (CircuitBreakerOpenException ex)
+            {
+                _logger.LogWarning(ex, "EventService circuit breaker is open.");
+
+                ModelState.AddModelError("", "Event service is not available at the moment.");
+
+                return View(model);
             }
             catch (Exception ex)
             {
@@ -151,6 +181,12 @@ namespace EventProject.WebService.Controllers
                     LocationId = dto.LocationId
                 });
             }
+            catch (CircuitBreakerOpenException ex)
+            {
+                _logger.LogWarning(ex, "EventService circuit breaker is open.");
+
+                return RedirectToAction(nameof(Index));
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading event {Id}", id);
@@ -183,6 +219,16 @@ namespace EventProject.WebService.Controllers
 
                 return RedirectToAction(nameof(Details), new { id });
             }
+            catch (CircuitBreakerOpenException ex)
+            {
+                _logger.LogWarning(ex,
+                    "EventService circuit breaker is open.");
+
+                ModelState.AddModelError("",
+                    "Event service is not available at the moment.");
+
+                return View(model);
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating event {Id}", id);
@@ -197,6 +243,16 @@ namespace EventProject.WebService.Controllers
             try
             {
                 await _eventApiClient.DeleteEventAsync(id);
+                return RedirectToAction(nameof(Index));
+            }
+            catch (CircuitBreakerOpenException ex)
+            {
+                _logger.LogWarning(ex,
+                    "EventService circuit breaker is open.");
+
+                TempData["ErrorMessage"] =
+                    "Event service is not available at the moment.";
+
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
