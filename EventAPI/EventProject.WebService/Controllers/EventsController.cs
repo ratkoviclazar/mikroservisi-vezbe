@@ -103,9 +103,33 @@ namespace EventProject.WebService.Controllers
 
 
         [HttpGet("create")]
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
-            return View();
+            try
+            {
+                var locations = await _referenceApiClient.GetAllLocationsAsync();
+                var types = await _referenceApiClient.GetAllEventTypesAsync();
+
+                ViewBag.Locations = locations.OrderBy(l => l.Name).ToList();
+                ViewBag.Types = types.OrderBy(t => t.Name).ToList();
+
+                return View();
+            }
+            catch (CircuitBreakerOpenException ex)
+            {
+                _logger.LogWarning(ex, "ReferenceService circuit breaker is open (create event page).");
+                ViewBag.ErrorMessage = "Servis za lokacije/tipove trenutno nije dostupan.";
+                ViewBag.Locations = new List<LocationDto>();
+                ViewBag.Types = new List<EventTypeDto>();
+                return View();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading create event page");
+                ViewBag.Locations = new List<LocationDto>();
+                ViewBag.Types = new List<EventTypeDto>();
+                return View();
+            }
         }
 
         [HttpPost("create")]
@@ -114,7 +138,13 @@ namespace EventProject.WebService.Controllers
             try
             {
                 if (!ModelState.IsValid)
+                {
+                    var locations = await _referenceApiClient.GetAllLocationsAsync();
+                    var types = await _referenceApiClient.GetAllEventTypesAsync();
+                    ViewBag.Locations = locations.OrderBy(l => l.Name).ToList();
+                    ViewBag.Types = types.OrderBy(t => t.Name).ToList();
                     return View(model);
+                }
                 var createDto = new CreateEventDto
                 {
                     Name = model.Name,
@@ -134,6 +164,12 @@ namespace EventProject.WebService.Controllers
                 _logger.LogWarning(ex, "EventService circuit breaker is open.");
 
                 ModelState.AddModelError("", "Event service is not available at the moment.");
+
+
+                var locations = await _referenceApiClient.GetAllLocationsAsync();
+                var types = await _referenceApiClient.GetAllEventTypesAsync();
+                ViewBag.Locations = locations.OrderBy(l => l.Name).ToList();
+                ViewBag.Types = types.OrderBy(t => t.Name).ToList(); ;
 
                 return View(model);
             }

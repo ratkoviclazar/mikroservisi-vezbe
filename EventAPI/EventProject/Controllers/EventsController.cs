@@ -1,8 +1,12 @@
 ﻿using EventAPI.Data;
 using EventAPI.Domains;
+using EventAPI.DTO.Messaging;
+using EventAPI.DTO.Shared;
+using EventAPI.Models;
 using EventProject.DTO.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace EventAPI.Controllers;
 
@@ -173,6 +177,8 @@ public class EventsController : ControllerBase
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+
         var entity = new Event
         {
             Name = dto.Name,
@@ -187,6 +193,37 @@ public class EventsController : ControllerBase
         _context.Events.Add(entity);
 
         await _context.SaveChangesAsync();
+
+        var locationSnapshot = await _context.LocationSnapshots
+           .FirstOrDefaultAsync(x => x.ExternalId == dto.LocationId);
+
+        var locationName = locationSnapshot?.Name ?? "Nepoznata lokacija";
+
+
+        var emailMessage = new EmailMessage
+        {
+            Id = Guid.NewGuid(),
+            To = "org@example.com",
+            Subject = $"Kreiran novi događaj: {entity.Name}",
+            Body = $"Događaj {entity.Name} dana {entity.DateTime:dd.MM.yyyy HH:mm} na lokaciji {locationName}",
+            EnqueuedAt = DateTime.UtcNow
+        };
+
+        var emailPayload = JsonSerializer.Serialize(emailMessage);
+
+        _context.OutboxMessages.Add(new OutboxMessage
+        {
+            MessageId = Guid.NewGuid(),
+            Type = RoutingKeys.EmailSent,
+            Payload = emailPayload,
+            CreatedAt = DateTime.UtcNow,
+            IsProcessed = false,
+            IsProcessing = false
+        });
+
+        await _context.SaveChangesAsync();
+
+        await transaction.CommitAsync();
 
         return CreatedAtAction(
             nameof(GetById),

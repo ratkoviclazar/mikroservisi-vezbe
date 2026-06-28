@@ -1,4 +1,5 @@
 ﻿using EventAPI.Domains;
+using EventAPI.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventAPI.Data
@@ -16,6 +17,9 @@ namespace EventAPI.Data
         public DbSet<EventTypeSnapshot> EventTypeSnapshots => Set<EventTypeSnapshot>();
         public DbSet<LocationSnapshot> LocationSnapshots => Set<LocationSnapshot>();
         public DbSet<LecturerSnapshot> LecturerSnapshots => Set<LecturerSnapshot>();
+
+        public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+        public DbSet<ProcessedMessage> ProcessedMessages => Set<ProcessedMessage>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -110,6 +114,48 @@ namespace EventAPI.Data
                 entity.Property(x => x.ExpertiseArea)
                     .HasMaxLength(200);
             });
+
+            modelBuilder.Entity<OutboxMessage>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.Type)
+                      .IsRequired()
+                      .HasMaxLength(200);
+
+                entity.Property(x => x.Payload)
+                      .IsRequired();
+
+                entity.Property(x => x.CreatedAt)
+                      .IsRequired();
+
+                entity.Property(x => x.IsProcessed)
+                      .HasDefaultValue(false);
+
+                entity.HasIndex(x => x.IsProcessed);
+                entity.HasIndex(x => x.MessageId)
+                      .IsUnique();
+            });
+
+            modelBuilder.Entity<ProcessedMessage>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.EventId)
+                      .IsRequired()
+                      .HasMaxLength(100);
+
+                entity.Property(x => x.EventType)
+                      .IsRequired()
+                      .HasMaxLength(200);
+
+                entity.Property(x => x.ProcessedAtUtc)
+                      .IsRequired();
+
+                entity.HasIndex(x => x.EventId)
+                      .IsUnique();
+            });
+
         }
     }
 }

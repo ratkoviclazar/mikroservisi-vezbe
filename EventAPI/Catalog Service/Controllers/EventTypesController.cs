@@ -1,8 +1,10 @@
+﻿using Catalog_Service.Models;
 using EventProject.CatalogService.Data;
 using EventProject.CatalogService.Models;
 using EventProject.DTO.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace EventProject.CatalogService.Controllers;
 
@@ -21,13 +23,8 @@ public class EventTypesController : ControllerBase
     public async Task<ActionResult<IEnumerable<EventTypeDto>>> GetAll()
     {
         var result = await _context.EventTypes
-            .Select(x => new EventTypeDto
-            {
-                Id = x.Id,
-                Name = x.Name
-            })
+            .Select(x => new EventTypeDto { Id = x.Id, Name = x.Name })
             .ToListAsync();
-
         return Ok(result);
     }
 
@@ -36,13 +33,8 @@ public class EventTypesController : ControllerBase
     {
         var result = await _context.EventTypes
             .Where(x => x.Id == id)
-            .Select(x => new EventTypeDto
-            {
-                Id = x.Id,
-                Name = x.Name
-            })
+            .Select(x => new EventTypeDto { Id = x.Id, Name = x.Name })
             .FirstOrDefaultAsync();
-
         return result == null ? NotFound() : Ok(result);
     }
 
@@ -56,11 +48,26 @@ public class EventTypesController : ControllerBase
             UpdatedAt = DateTime.UtcNow
         };
 
+
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+
         _context.EventTypes.Add(entity);
         await _context.SaveChangesAsync();
 
-        request.Id = entity.Id;
+        _context.OutboxMessages.Add(new OutboxMessage
+        {
+            MessageId = Guid.NewGuid(),
+            Type = "eventtype.created",
+            Payload = JsonSerializer.Serialize(new EventTypeDto { Id = entity.Id, Name = entity.Name }),
+            CreatedAt = DateTime.UtcNow,
+            IsProcessed = false,
+            IsProcessing = false
+        });
+        await _context.SaveChangesAsync();
 
+        await transaction.CommitAsync();
+
+        request.Id = entity.Id;
         return CreatedAtAction(nameof(GetById), new { id = entity.Id }, request);
     }
 
@@ -68,15 +75,23 @@ public class EventTypesController : ControllerBase
     public async Task<IActionResult> Update(int id, EventTypeDto request)
     {
         var entity = await _context.EventTypes.FindAsync(id);
-
         if (entity == null)
             return NotFound();
 
         entity.Name = request.Name;
         entity.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
+        _context.OutboxMessages.Add(new OutboxMessage
+        {
+            MessageId = Guid.NewGuid(),
+            Type = "eventtype.updated",
+            Payload = JsonSerializer.Serialize(new EventTypeDto { Id = entity.Id, Name = entity.Name }),
+            CreatedAt = DateTime.UtcNow,
+            IsProcessed = false,
+            IsProcessing = false
+        });
 
+        await _context.SaveChangesAsync();
         return NoContent();
     }
 
@@ -84,13 +99,24 @@ public class EventTypesController : ControllerBase
     public async Task<IActionResult> Delete(int id)
     {
         var entity = await _context.EventTypes.FindAsync(id);
-
         if (entity == null)
             return NotFound();
 
-        _context.EventTypes.Remove(entity);
-        await _context.SaveChangesAsync();
+        var payload = JsonSerializer.Serialize(new EventTypeDto { Id = entity.Id, Name = entity.Name });
 
+        _context.EventTypes.Remove(entity);
+
+        _context.OutboxMessages.Add(new Catalog_Service.Models.OutboxMessage
+        {
+            MessageId = Guid.NewGuid(),
+            Type = "eventtype.deleted",
+            Payload = payload,
+            CreatedAt = DateTime.UtcNow,
+            IsProcessed = false,
+            IsProcessing = false
+        });
+
+        await _context.SaveChangesAsync();
         return NoContent();
     }
 }

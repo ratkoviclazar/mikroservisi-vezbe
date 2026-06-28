@@ -33,12 +33,16 @@
     </div>
     <div class="form-group">
         <label asp-for="LocationId">Lokacija</label>
-        <select asp-for="LocationId" class="form-control" asp-items="ViewBag.Locations"></select>
+        <select asp-for="LocationId" class="form-control" asp-items="@(new SelectList(ViewBag.Locations, "Id", "Name"))">
+            <option value="">-- Izaberite lokaciju --</option>
+        </select>
         <span asp-validation-for="LocationId" class="text-danger"></span>
     </div>
     <div class="form-group">
         <label asp-for="TypeId">Tip</label>
-        <select asp-for="TypeId" class="form-control" asp-items="ViewBag.Types"></select>
+        <select asp-for="TypeId" class="form-control" asp-items="@(new SelectList(ViewBag.Types, "Id", "Name"))">
+            <option value="">-- Izaberite tip --</option>
+        </select>
         <span asp-validation-for="TypeId" class="text-danger"></span>
     </div>
     <button type="submit" class="btn btn-primary">Sačuvaj</button>

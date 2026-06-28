@@ -1,4 +1,7 @@
 using EventProject.LecturerService.Data;
+using Lecturer_Service;
+using Lecturer_Service.HostedServices;
+using Lecturer_Service.Messaging;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,6 +12,16 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<LecturerDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.Configure<RabbitMqOptions>(
+    builder.Configuration.GetSection(RabbitMqOptions.SectionName));
+
+builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
+builder.Services.AddHostedService<OutboxDispatcherHostedService>();
+
+
+
+builder.Services.AddHostedService<ValidationRequestConsumerHostedService>();
 
 var app = builder.Build();
 

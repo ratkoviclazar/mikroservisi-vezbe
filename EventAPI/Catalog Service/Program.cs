@@ -1,11 +1,19 @@
+using Catalog_Service.HostedServices;
+using Catalog_Service.Messaging;
 using EventProject.CatalogService.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 builder.Services.AddSqlServer<ReferenceDbContext>(builder.Configuration.GetConnectionString("DefaultConnection"));
+builder.Services.Configure<RabbitMqOptions>(
+    builder.Configuration.GetSection(RabbitMqOptions.SectionName));
 
+builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
+builder.Services.AddHostedService<OutboxDispatcherHostedService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -19,7 +27,12 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
+
+
 app.UseRouting();
+
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseAuthorization();
 
