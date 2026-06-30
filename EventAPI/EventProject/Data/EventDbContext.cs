@@ -1,4 +1,5 @@
 ﻿using EventAPI.Domains;
+using EventAPI.EventSourcing.Persistence;
 using EventAPI.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,9 +22,56 @@ namespace EventAPI.Data
         public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
         public DbSet<ProcessedMessage> ProcessedMessages => Set<ProcessedMessage>();
 
+        public DbSet<EventStoreEntry> EventStoreEntries => Set<EventStoreEntry>();
+        public DbSet<EventSnapshot> EventSnapshots => Set<EventSnapshot>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<EventStoreEntry>(entity =>
+            {
+                entity.ToTable("EventStoreEntries");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.AggregateType)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.EventType)
+                    .IsRequired()
+                    .HasMaxLength(200);
+
+                entity.Property(x => x.EventData)
+                    .IsRequired();
+
+                entity.Property(x => x.OccurredAt)
+                    .IsRequired();
+
+                entity.HasIndex(x => new { x.AggregateId, x.Version })
+                    .IsUnique();
+
+                entity.HasIndex(x => x.AggregateId);
+            });
+
+            modelBuilder.Entity<EventSnapshot>(entity =>
+            {
+                entity.ToTable("EventSnapshots");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.State)
+                    .IsRequired();
+
+                entity.Property(x => x.CreatedAt)
+                    .IsRequired();
+
+                entity.HasIndex(x => new { x.AggregateId, x.Version })
+                    .IsUnique();
+
+                entity.HasIndex(x => x.AggregateId);
+            });
 
             modelBuilder.Entity<Event>(entity =>
             {

@@ -2,6 +2,7 @@
 using EventAPI.CQRS.Commands;
 using EventAPI.CQRS.Queries;
 using EventAPI.CQRS.Queries.ReadModels;
+using EventAPI.EventSourcing.Services;
 using EventProject.DTO.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,18 +23,22 @@ public class EventsController : ControllerBase
     private readonly ICommandHandler<UpdateEventCommand, CommandResult> _updateHandler;
     private readonly ICommandHandler<DeleteEventCommand, CommandResult> _deleteHandler;
 
+    private readonly IEventSourcingService _eventSourcingService;
+
     public EventsController(
         IQueryHandler<GetAllEventsQuery, List<EventListItemReadModel>> getAllHandler,
         IQueryHandler<GetEventByIdQuery, EventDetailsReadModel?> getByIdHandler,
         IQueryHandler<FilterEventsQuery, List<EventListItemReadModel>> filterHandler,
         ICommandHandler<CreateEventCommand, CommandResult<int>> createHandler,
         ICommandHandler<UpdateEventCommand, CommandResult> updateHandler,
-        ICommandHandler<DeleteEventCommand, CommandResult> deleteHandler)
+        ICommandHandler<DeleteEventCommand, CommandResult> deleteHandler,
+        IEventSourcingService eventSourcingService)
     {
         _getAllHandler = getAllHandler;
         _getByIdHandler = getByIdHandler;
         _filterHandler = filterHandler;
         _createHandler = createHandler;
+        _eventSourcingService = eventSourcingService;
         _updateHandler = updateHandler;
         _deleteHandler = deleteHandler;
     }
@@ -69,6 +74,17 @@ public class EventsController : ControllerBase
             return NotFound();
 
         return Ok(result);
+    }
+
+    [HttpGet("{id:int}/history")]
+    public async Task<IActionResult> GetHistory(int id, CancellationToken cancellationToken)
+    {
+        var history = await _eventSourcingService.GetHistoryViewAsync(id, cancellationToken);
+
+        if (history.Count == 0)
+            return NotFound($"Istorija za događaj sa Id {id} ne postoji.");
+
+        return Ok(history);
     }
 
     [HttpGet("search")]

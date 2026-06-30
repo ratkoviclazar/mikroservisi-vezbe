@@ -7,6 +7,8 @@ using EventAPI.CQRS.Queries;
 using EventAPI.CQRS.Queries.Handlers;
 using EventAPI.CQRS.Queries.ReadModels;
 using EventAPI.Data;
+using EventAPI.EventSourcing.Persistence;
+using EventAPI.EventSourcing.Services;
 using EventAPI.HostedServices;
 using EventAPI.Messaging;
 using EventAPI.Services;
@@ -14,6 +16,13 @@ using EventAPI.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSqlServer<EventsDbContext>(builder.Configuration.GetConnectionString("DefaultConnection"));
+
+builder.Services.AddSwaggerGen();
+builder.Services.AddEndpointsApiExplorer();
+
+builder.Services.AddScoped<IEventStoreRepository, EventStoreRepository>();
+builder.Services.AddScoped<ISnapshotRepository, SnapshotRepository>();
+builder.Services.AddScoped<IEventSourcingService, EventSourcingService>();
 
 builder.Services.AddScoped<IEventsReadStore, EventsReadStore>();
 builder.Services.AddScoped<IEventsWriteStore, EventsWriteStore>();
@@ -61,6 +70,9 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseAuthorization();
 

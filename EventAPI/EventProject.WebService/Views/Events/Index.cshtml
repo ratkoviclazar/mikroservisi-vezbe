@@ -68,7 +68,19 @@
                 <td>
                     <a class="btn btn-info btn-sm" asp-action="Details" asp-route-id="@d.Id">Detalji</a>
                     <a class="btn btn-warning btn-sm" asp-action="Edit" asp-route-id="@d.Id">Izmeni</a>
-                    <a class="btn btn-danger btn-sm" asp-action="Delete" asp-route-id="@d.Id">Obriši</a>
+                    <form asp-action="Delete"
+                          asp-route-id="@d.Id"
+                          method="post"
+                          style="display:inline">
+
+                        @Html.AntiForgeryToken()
+
+                        <button class="btn btn-danger btn-sm"
+                                onclick="return confirm('Da li ste sigurni da želite da obrišete događaj?')">
+                            Obriši
+                        </button>
+
+                    </form>                    
                     <a class="btn btn-success btn-sm" asp-controller="EventLectures" asp-action="Index" asp-route-eventId="@d.Id" asp-route-eventName="@d.Name">Predavači</a>
                 </td>
             </tr>

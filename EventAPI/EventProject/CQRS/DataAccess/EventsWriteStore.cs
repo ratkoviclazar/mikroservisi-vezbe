@@ -29,8 +29,6 @@ namespace EventAPI.CQRS.DataAccess
 
         public async Task<int> CreateEventAsync(Event newEvent, CancellationToken cancellationToken = default)
         {
-            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-
             _context.Events.Add(newEvent);
             await _context.SaveChangesAsync(cancellationToken);
 
@@ -61,8 +59,6 @@ namespace EventAPI.CQRS.DataAccess
             });
 
             await _context.SaveChangesAsync(cancellationToken);
-
-            await transaction.CommitAsync(cancellationToken);
 
             return newEvent.Id;
         }
