@@ -1,3 +1,11 @@
+using EventAPI.CQRS.Abstractions;
+using EventAPI.CQRS.Commands;
+using EventAPI.CQRS.Commands.Handlers;
+using EventAPI.CQRS.Commands.Validation;
+using EventAPI.CQRS.DataAccess;
+using EventAPI.CQRS.Queries;
+using EventAPI.CQRS.Queries.Handlers;
+using EventAPI.CQRS.Queries.ReadModels;
 using EventAPI.Data;
 using EventAPI.HostedServices;
 using EventAPI.Messaging;
@@ -6,6 +14,21 @@ using EventAPI.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSqlServer<EventsDbContext>(builder.Configuration.GetConnectionString("DefaultConnection"));
+
+builder.Services.AddScoped<IEventsReadStore, EventsReadStore>();
+builder.Services.AddScoped<IEventsWriteStore, EventsWriteStore>();
+
+builder.Services.AddScoped<ICommandValidator<CreateEventCommand>, CreateEventCommandValidator>();
+builder.Services.AddScoped<ICommandValidator<UpdateEventCommand>, UpdateEventCommandValidator>();
+builder.Services.AddScoped<ICommandValidator<DeleteEventCommand>, DeleteEventCommandValidator>();
+
+builder.Services.AddScoped<ICommandHandler<CreateEventCommand, CommandResult<int>>, CreateEventCommandHandler>();
+builder.Services.AddScoped<ICommandHandler<UpdateEventCommand, CommandResult>, UpdateEventCommandHandler>();
+builder.Services.AddScoped<ICommandHandler<DeleteEventCommand, CommandResult>, DeleteEventCommandHandler>();
+
+builder.Services.AddScoped<IQueryHandler<GetAllEventsQuery, List<EventListItemReadModel>>, GetAllEventsQueryHandler>();
+builder.Services.AddScoped<IQueryHandler<GetEventByIdQuery, EventDetailsReadModel?>, GetEventByIdQueryHandler>();
+builder.Services.AddScoped<IQueryHandler<FilterEventsQuery, List<EventListItemReadModel>>, FilterEventsQueryHandler>();
 
 builder.Services.Configure<RabbitMqConsumerOptions>(
     builder.Configuration.GetSection(RabbitMqConsumerOptions.SectionName));

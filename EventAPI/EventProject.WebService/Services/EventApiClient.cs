@@ -40,6 +40,41 @@ namespace EventProject.WebService.Services
             });
         }
 
+        public async Task<List<EventDetailsDto>> SearchEventsAsync(
+            string? name = null,
+            int? locationId = null,
+            int? typeId = null,
+            DateTime? from = null,
+            DateTime? to = null)
+        {
+            return await _circuitBreaker.ExecuteAsync(async () =>
+            {
+                var query = new List<string>();
+
+                if (!string.IsNullOrWhiteSpace(name))
+                    query.Add($"name={Uri.EscapeDataString(name)}");
+
+                if (locationId.HasValue)
+                    query.Add($"locationId={locationId.Value}");
+
+                if (typeId.HasValue)
+                    query.Add($"typeId={typeId.Value}");
+
+                if (from.HasValue)
+                    query.Add($"from={Uri.EscapeDataString(from.Value.ToString("O"))}");
+
+                if (to.HasValue)
+                    query.Add($"to={Uri.EscapeDataString(to.Value.ToString("O"))}");
+
+                var queryString = query.Count > 0 ? "?" + string.Join("&", query) : string.Empty;
+
+                var result = await _httpClient
+                    .GetFromJsonAsync<List<EventDetailsDto>>($"api/events/search{queryString}");
+
+                return result ?? new List<EventDetailsDto>();
+            });
+        }
+
         public async Task<EventDetailsDto> CreateEventAsync(CreateEventDto createEventDto)
         {
             return await _circuitBreaker.ExecuteAsync(async () =>

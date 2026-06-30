@@ -48,6 +48,9 @@ namespace EventProject.WebService.Controllers
                         LocationName = locations.FirstOrDefault(l => l.Id == e.LocationId)?.Name ?? string.Empty,
                     });
 
+                ViewBag.Locations = locations.OrderBy(l => l.Name).ToList();
+                ViewBag.Types = types.OrderBy(t => t.Name).ToList();
+
                 return View(model);
             }
             catch (CircuitBreakerOpenException ex)
@@ -62,6 +65,57 @@ namespace EventProject.WebService.Controllers
             {
                 _logger.LogError(ex, "Error loading events");
                 return View(new List<EventViewModel>());
+            }
+        }
+
+
+        [HttpGet("search")]
+        public async Task<IActionResult> Search(string? name, int? locationId, int? typeId, DateTime? from, DateTime? to)
+        {
+            try
+            {
+                var locations = await _referenceApiClient.GetAllLocationsAsync();
+                var types = await _referenceApiClient.GetAllEventTypesAsync();
+                var events = await _eventApiClient.SearchEventsAsync(name, locationId, typeId, from, to);
+
+                var model = events
+                    .OrderBy(e => e.Name)
+                    .Select(e => new EventViewModel
+                    {
+                        Id = e.Id,
+                        Name = e.Name,
+                        Agenda = e.Agenda,
+                        DateTime = e.DateTime,
+                        DurationInHours = e.DurationInHours,
+                        Price = e.Price,
+                        TypeId = e.TypeId,
+                        TypeName = types.FirstOrDefault(t => t.Id == e.TypeId)?.Name ?? string.Empty,
+                        LocationId = e.LocationId,
+                        LocationName = locations.FirstOrDefault(l => l.Id == e.LocationId)?.Name ?? string.Empty,
+                    });
+
+                ViewBag.Locations = locations.OrderBy(l => l.Name).ToList();
+                ViewBag.Types = types.OrderBy(t => t.Name).ToList();
+                ViewBag.SearchName = name;
+                ViewBag.SearchLocationId = locationId;
+                ViewBag.SearchTypeId = typeId;
+                ViewBag.SearchFrom = from?.ToString("yyyy-MM-dd");
+                ViewBag.SearchTo = to?.ToString("yyyy-MM-dd");
+
+                return View("Index", model);
+            }
+            catch (CircuitBreakerOpenException ex)
+            {
+                _logger.LogWarning(ex, "EventService circuit breaker is open.");
+
+                ViewBag.ErrorMessage = "Event service is not available at the moment.";
+
+                return View("Index", new List<EventViewModel>());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching events");
+                return View("Index", new List<EventViewModel>());
             }
         }
 

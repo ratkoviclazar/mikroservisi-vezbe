@@ -1,12 +1,9 @@
-﻿using EventAPI.Data;
-using EventAPI.Domains;
-using EventAPI.DTO.Messaging;
-using EventAPI.DTO.Shared;
-using EventAPI.Models;
+﻿using EventAPI.CQRS.Abstractions;
+using EventAPI.CQRS.Commands;
+using EventAPI.CQRS.Queries;
+using EventAPI.CQRS.Queries.ReadModels;
 using EventProject.DTO.DTOs;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
 
 namespace EventAPI.Controllers;
 
@@ -16,15 +13,33 @@ public class EventsController : ControllerBase
 {
     private static int _counter = 0;
     private static int _timeoutCounter = 0;
-    private readonly EventsDbContext _context;
 
-    public EventsController(EventsDbContext context)
+    private readonly IQueryHandler<GetAllEventsQuery, List<EventListItemReadModel>> _getAllHandler;
+    private readonly IQueryHandler<GetEventByIdQuery, EventDetailsReadModel?> _getByIdHandler;
+    private readonly IQueryHandler<FilterEventsQuery, List<EventListItemReadModel>> _filterHandler;
+
+    private readonly ICommandHandler<CreateEventCommand, CommandResult<int>> _createHandler;
+    private readonly ICommandHandler<UpdateEventCommand, CommandResult> _updateHandler;
+    private readonly ICommandHandler<DeleteEventCommand, CommandResult> _deleteHandler;
+
+    public EventsController(
+        IQueryHandler<GetAllEventsQuery, List<EventListItemReadModel>> getAllHandler,
+        IQueryHandler<GetEventByIdQuery, EventDetailsReadModel?> getByIdHandler,
+        IQueryHandler<FilterEventsQuery, List<EventListItemReadModel>> filterHandler,
+        ICommandHandler<CreateEventCommand, CommandResult<int>> createHandler,
+        ICommandHandler<UpdateEventCommand, CommandResult> updateHandler,
+        ICommandHandler<DeleteEventCommand, CommandResult> deleteHandler)
     {
-        _context = context;
+        _getAllHandler = getAllHandler;
+        _getByIdHandler = getByIdHandler;
+        _filterHandler = filterHandler;
+        _createHandler = createHandler;
+        _updateHandler = updateHandler;
+        _deleteHandler = deleteHandler;
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<EventDetailsDto>>> GetAll()
+    public async Task<ActionResult<IEnumerable<EventListItemReadModel>>> GetAll()
     {
         _counter++;
 
@@ -34,64 +49,12 @@ public class EventsController : ControllerBase
             return StatusCode(500, "Simulated server error");
         }
 
-        var events = await _context.Events
-            .Include(x => x.EventLectures)
-            .ToListAsync();
-
-        var result = new List<EventDetailsDto>();
-
-        foreach (var ev in events)
-        {
-            var location = await _context.LocationSnapshots
-                .FirstOrDefaultAsync(x => x.ExternalId == ev.LocationId);
-
-            var eventType = await _context.EventTypeSnapshots
-                .FirstOrDefaultAsync(x => x.ExternalId == ev.TypeId);
-
-            result.Add(new EventDetailsDto
-            {
-                Id = ev.Id,
-                Name = ev.Name,
-                Agenda = ev.Agenda,
-                DateTime = ev.DateTime,
-                DurationInHours = ev.DurationInHours,
-                Price = ev.Price,
-                TypeId = ev.TypeId,
-                LocationId = ev.LocationId,
-                Location = location == null
-                    ? null
-                    : new LocationDto
-                    {
-                        Id = location.ExternalId,
-                        Name = location.Name,
-                        Address = location.Address,
-                        Capacity = location.Capacity
-                    },
-
-                EventType = eventType == null
-                    ? null
-                    : new EventTypeDto
-                    {
-                        Id = eventType.ExternalId,
-                        Name = eventType.Name
-                    },
-
-                EventLectures = ev.EventLectures.Select(x => new EventLectureDto
-                {
-                    Id = x.Id,
-                    EventId = x.EventId,
-                    LecturerId = x.LecturerId,
-                    DateTime = x.DateTime,
-                    DurationInHours = x.DurationInHours
-                }).ToList()
-            });
-        }
-
+        var result = await _getAllHandler.HandleAsync(new GetAllEventsQuery());
         return Ok(result);
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<EventDetailsDto>> GetById(int id)
+    public async Task<ActionResult<EventDetailsReadModel>> GetById(int id)
     {
         _timeoutCounter++;
         if (_timeoutCounter % 2 == 0)
@@ -99,87 +62,40 @@ public class EventsController : ControllerBase
             Console.WriteLine("Simulating timeout for testing purposes.");
             await Task.Delay(7000);
         }
-        var ev = await _context.Events
-            .Include(x => x.EventLectures)
-            .FirstOrDefaultAsync(x => x.Id == id);
 
-        if (ev == null)
+        var result = await _getByIdHandler.HandleAsync(new GetEventByIdQuery { Id = id });
+
+        if (result == null)
             return NotFound();
-
-        var location = await _context.LocationSnapshots
-            .FirstOrDefaultAsync(x => x.ExternalId == ev.LocationId);
-
-        var eventType = await _context.EventTypeSnapshots
-            .FirstOrDefaultAsync(x => x.ExternalId == ev.TypeId);
-
-        var result = new EventDetailsDto
-        {
-            Id = ev.Id,
-            Name = ev.Name,
-            Agenda = ev.Agenda,
-            DateTime = ev.DateTime,
-            DurationInHours = ev.DurationInHours,
-            Price = ev.Price,
-            TypeId = ev.TypeId,
-            LocationId = ev.LocationId,
-            Location = location == null
-                ? null
-                : new LocationDto
-                {
-                    Id = location.ExternalId,
-                    Name = location.Name,
-                    Address = location.Address,
-                    Capacity = location.Capacity
-                },
-
-            EventType = eventType == null
-                ? null
-                : new EventTypeDto
-                {
-                    Id = eventType.ExternalId,
-                    Name = eventType.Name
-                },
-
-            EventLectures = ev.EventLectures.Select(x => new EventLectureDto
-            {
-                Id = x.Id,
-                EventId = x.EventId,
-                LecturerId = x.LecturerId,
-                DateTime = x.DateTime,
-                DurationInHours = x.DurationInHours
-            }).ToList()
-        };
 
         return Ok(result);
     }
 
-    [HttpPost]
-    public async Task<ActionResult<EventDetailsDto>> Create(CreateEventDto dto)
+    [HttpGet("search")]
+    public async Task<ActionResult<IEnumerable<EventListItemReadModel>>> Filter(
+        [FromQuery] string? name,
+        [FromQuery] int? locationId,
+        [FromQuery] int? typeId,
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to)
     {
-        if (dto.DurationInHours <= 0)
-            ModelState.AddModelError(nameof(dto.DurationInHours), "Duration must be greater than 0.");
+        var query = new FilterEventsQuery
+        {
+            NameContains = name,
+            LocationId = locationId,
+            TypeId = typeId,
+            FromDate = from,
+            ToDate = to
+        };
 
-        if (dto.Price < 0)
-            ModelState.AddModelError(nameof(dto.Price), "Price cannot be negative.");
+        var result = await _filterHandler.HandleAsync(query);
+        return Ok(result);
+    }
 
-        var locationExists = await _context.LocationSnapshots
-            .AnyAsync(x => x.ExternalId == dto.LocationId);
-
-        if (!locationExists)
-            ModelState.AddModelError(nameof(dto.LocationId), "Location does not exist.");
-
-        var eventTypeExists = await _context.EventTypeSnapshots
-            .AnyAsync(x => x.ExternalId == dto.TypeId);
-
-        if (!eventTypeExists)
-            ModelState.AddModelError(nameof(dto.TypeId), "Event type does not exist.");
-
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
-
-        await using var transaction = await _context.Database.BeginTransactionAsync();
-
-        var entity = new Event
+    [HttpPost]
+    public async Task<IActionResult> Create(CreateEventDto dto)
+    {
+        var command = new CreateEventCommand
         {
             Name = dto.Name,
             Agenda = dto.Agenda,
@@ -190,64 +106,33 @@ public class EventsController : ControllerBase
             LocationId = dto.LocationId
         };
 
-        _context.Events.Add(entity);
+        var result = await _createHandler.HandleAsync(command);
 
-        await _context.SaveChangesAsync();
+        if (!result.Success)
+            return MapFailure(result);
 
-        var locationSnapshot = await _context.LocationSnapshots
-           .FirstOrDefaultAsync(x => x.ExternalId == dto.LocationId);
-
-        var locationName = locationSnapshot?.Name ?? "Nepoznata lokacija";
-
-
-        var emailMessage = new EmailMessage
-        {
-            Id = Guid.NewGuid(),
-            To = "org@example.com",
-            Subject = $"Kreiran novi događaj: {entity.Name}",
-            Body = $"Događaj {entity.Name} dana {entity.DateTime:dd.MM.yyyy HH:mm} na lokaciji {locationName}",
-            EnqueuedAt = DateTime.UtcNow
-        };
-
-        var emailPayload = JsonSerializer.Serialize(emailMessage);
-
-        _context.OutboxMessages.Add(new OutboxMessage
-        {
-            MessageId = Guid.NewGuid(),
-            Type = RoutingKeys.EmailSent,
-            Payload = emailPayload,
-            CreatedAt = DateTime.UtcNow,
-            IsProcessed = false,
-            IsProcessing = false
-        });
-
-        await _context.SaveChangesAsync();
-
-        await transaction.CommitAsync();
-
-        return CreatedAtAction(
-            nameof(GetById),
-            new { id = entity.Id },
-            new { entity.Id });
+        return CreatedAtAction(nameof(GetById), new { id = result.Data }, new { id = result.Data });
     }
 
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, UpdateEventDto dto)
     {
-        var entity = await _context.Events.FindAsync(id);
+        var command = new UpdateEventCommand
+        {
+            Id = id,
+            Name = dto.Name,
+            Agenda = dto.Agenda,
+            DateTime = dto.DateTime,
+            DurationInHours = dto.DurationInHours,
+            Price = dto.Price,
+            TypeId = dto.TypeId,
+            LocationId = dto.LocationId
+        };
 
-        if (entity == null)
-            return NotFound();
+        var result = await _updateHandler.HandleAsync(command);
 
-        entity.Name = dto.Name;
-        entity.Agenda = dto.Agenda;
-        entity.DateTime = dto.DateTime;
-        entity.DurationInHours = dto.DurationInHours;
-        entity.Price = dto.Price;
-        entity.TypeId = dto.TypeId;
-        entity.LocationId = dto.LocationId;
-
-        await _context.SaveChangesAsync();
+        if (!result.Success)
+            return MapFailure(result);
 
         return NoContent();
     }
@@ -255,15 +140,18 @@ public class EventsController : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var entity = await _context.Events.FindAsync(id);
+        var result = await _deleteHandler.HandleAsync(new DeleteEventCommand { Id = id });
 
-        if (entity == null)
-            return NotFound();
-
-        _context.Events.Remove(entity);
-
-        await _context.SaveChangesAsync();
+        if (!result.Success)
+            return MapFailure(result);
 
         return NoContent();
     }
+
+    private IActionResult MapFailure(CommandResult result) => result.Status switch
+    {
+        CommandStatus.NotFound => NotFound(new { errors = result.Errors }),
+        CommandStatus.ValidationError => BadRequest(new { errors = result.Errors }),
+        _ => StatusCode(500, new { errors = result.Errors })
+    };
 }

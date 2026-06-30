@@ -1,10 +1,46 @@
 ﻿@model IEnumerable<EventViewModel>
+@using EventProject.DTO.DTOs
 
 @{
     ViewData["Title"] = "Događaji";
 }
 <h2 class="mb-4">Događaji</h2>
 <a class="btn btn-primary mb-3" asp-action="Create">Novi događaj</a>
+
+<form asp-action="Search" method="get" class="row g-2 mb-4">
+    <div class="col-auto">
+        <input type="text" name="name" value="@ViewBag.SearchName" class="form-control" placeholder="Naziv" />
+    </div>
+    <div class="col-auto">
+        <select name="locationId" class="form-select">
+            <option value="">-- Lokacija --</option>
+            @foreach (var l in (ViewBag.Locations as IEnumerable<LocationDto>) ?? Enumerable.Empty<LocationDto>())
+            {
+                <option value="@l.Id" selected="@(ViewBag.SearchLocationId == l.Id)">@l.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-auto">
+        <select name="typeId" class="form-select">
+            <option value="">-- Tip --</option>
+            @foreach (var t in (ViewBag.Types as IEnumerable<EventTypeDto>) ?? Enumerable.Empty<EventTypeDto>())
+            {
+                <option value="@t.Id" selected="@(ViewBag.SearchTypeId == t.Id)">@t.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-auto">
+        <input type="date" name="from" value="@ViewBag.SearchFrom" class="form-control" />
+    </div>
+    <div class="col-auto">
+        <input type="date" name="to" value="@ViewBag.SearchTo" class="form-control" />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-secondary">Pretraži</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Resetuj</a>
+    </div>
+</form>
+
 <table class="table table-bordered table-striped">
     <thead>
         <tr>
