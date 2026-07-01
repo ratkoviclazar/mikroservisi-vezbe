@@ -51,10 +51,13 @@ builder.Services.AddHostedService<DeleteEventSagaConsumer>();
 
 builder.Services.AddScoped<MessageDispatcher>();
 builder.Services.AddHostedService<RabbitMqConsumerHostedService>();
-
+builder.Services.AddHostedService<ChoreographyEventLocationChangeConsumer>();
 
 builder.Services.AddSingleton<IEmailPublisher, RabbitMqEmailPublisher>();
+builder.Services.AddSingleton<IChoreographyRabbitMqPublisher, ChoreographyRabbitMqPublisher>();
+
 builder.Services.AddHostedService<OutboxDispatcherHostedService>();
+
 
 builder.Services.AddSingleton<RequestReplyClient>();
 builder.Services.AddSingleton<IRequestReplyClient>(sp => sp.GetRequiredService<RequestReplyClient>());

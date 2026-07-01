@@ -1,11 +1,17 @@
-﻿namespace EventAPI.EmailWorker.Services
+﻿namespace EventAPI.EmailWorker.Messaging
 {
-    public class RabbitMqOptions
+    public class SagaRabbitMqOptions
     {
+        public const string SectionName = "SagaRabbitMq";
+
         public string HostName { get; set; } = "localhost";
+
         public int Port { get; set; } = 5672;
+
         public string UserName { get; set; } = "guest";
+
         public string Password { get; set; } = "guest";
+
         public string VirtualHost { get; set; } = "/";
     }
 }

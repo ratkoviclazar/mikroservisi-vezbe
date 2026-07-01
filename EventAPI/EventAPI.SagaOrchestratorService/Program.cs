@@ -1,3 +1,4 @@
+using EventAPI.SagaOrchestratorService.Choreography;
 using EventAPI.SagaOrchestratorService.Data;
 using EventAPI.SagaOrchestratorService.HostedServices;
 using EventAPI.SagaOrchestratorService.Messaging;
@@ -27,6 +28,7 @@ builder.Services.AddScoped<ICreateEventWithLecturerSagaOrchestrator, CreateEvent
 builder.Services.AddHostedService<SagaReplyConsumerHostedService>();
 builder.Services.AddHostedService<SagaOutboxDispatcherHostedService>();
 
+builder.Services.AddHostedService<LocationChangeSagaTrackerConsumer>();
 
 builder.Services.AddDbContext<SagaDbContext>(options =>
 {

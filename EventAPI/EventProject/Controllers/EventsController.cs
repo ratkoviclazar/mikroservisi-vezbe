@@ -2,7 +2,11 @@
 using EventAPI.CQRS.Commands;
 using EventAPI.CQRS.Queries;
 using EventAPI.CQRS.Queries.ReadModels;
+using EventAPI.DTO.Messaging.Saga.Choreography;
+using EventAPI.DTO.Shared;
+using EventAPI.DTOs;
 using EventAPI.EventSourcing.Services;
+using EventAPI.Messaging;
 using EventProject.DTO.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,7 +28,7 @@ public class EventsController : ControllerBase
     private readonly ICommandHandler<DeleteEventCommand, CommandResult> _deleteHandler;
 
     private readonly IEventSourcingService _eventSourcingService;
-
+    private readonly IChoreographyRabbitMqPublisher _choreographyPublisher;
     public EventsController(
         IQueryHandler<GetAllEventsQuery, List<EventListItemReadModel>> getAllHandler,
         IQueryHandler<GetEventByIdQuery, EventDetailsReadModel?> getByIdHandler,
@@ -32,7 +36,8 @@ public class EventsController : ControllerBase
         ICommandHandler<CreateEventCommand, CommandResult<int>> createHandler,
         ICommandHandler<UpdateEventCommand, CommandResult> updateHandler,
         ICommandHandler<DeleteEventCommand, CommandResult> deleteHandler,
-        IEventSourcingService eventSourcingService)
+        IEventSourcingService eventSourcingService,
+        IChoreographyRabbitMqPublisher choreographyPublisher)
     {
         _getAllHandler = getAllHandler;
         _getByIdHandler = getByIdHandler;
@@ -41,6 +46,7 @@ public class EventsController : ControllerBase
         _eventSourcingService = eventSourcingService;
         _updateHandler = updateHandler;
         _deleteHandler = deleteHandler;
+        _choreographyPublisher = choreographyPublisher;
     }
 
     [HttpGet]
@@ -106,6 +112,53 @@ public class EventsController : ControllerBase
 
         var result = await _filterHandler.HandleAsync(query);
         return Ok(result);
+    }
+
+    [HttpPost("{id:int}/change-location-choreography")]
+    public async Task<IActionResult> ChangeLocationChoreography(
+    int id,
+    ChangeEventLocationChoreographyRequest request,
+    CancellationToken ct)
+    {
+        var existingEvent = await _getByIdHandler.HandleAsync(
+            new GetEventByIdQuery { Id = id },
+            ct);
+
+        if (existingEvent is null)
+            return NotFound(new { error = $"Događaj sa Id={id} ne postoji." });
+
+        if (existingEvent.LocationId == request.NewLocationId)
+            return BadRequest(new { error = "Nova lokacija je ista kao trenutna lokacija." });
+
+        var sagaId = Guid.NewGuid();
+        var correlationId = Guid.NewGuid();
+
+        var message = new LocationChangeRequested
+        {
+            SagaId = sagaId,
+            CorrelationId = correlationId,
+
+            EventId = existingEvent.Id,
+            OldLocationId = existingEvent.LocationId,
+            NewLocationId = request.NewLocationId,
+
+            EventName = existingEvent.Name,
+            EventDateTime = existingEvent.DateTime
+        };
+
+        await _choreographyPublisher.PublishAsync(
+            message: message,
+            exchange: "reference.exchange",
+            routingKey: RoutingKeys.LocationChangeRequested,
+            messageType: nameof(LocationChangeRequested),
+            ct: ct);
+
+        return Accepted(new
+        {
+            SagaId = sagaId,
+            CorrelationId = correlationId,
+            Message = "Saga koreografija za promenu lokacije je pokrenuta."
+        });
     }
 
     [HttpPost]

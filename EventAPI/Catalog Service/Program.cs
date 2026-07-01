@@ -14,6 +14,9 @@ builder.Services.Configure<RabbitMqOptions>(
 
 builder.Services.AddHostedService<ReferenceDataValidationSagaConsumer>();
 
+builder.Services.AddHostedService<ChoreographyLocationReservationConsumer>();
+builder.Services.AddHostedService<ChoreographyLocationReservationCancelConsumer>();
+
 builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
 builder.Services.AddHostedService<OutboxDispatcherHostedService>();
 var app = builder.Build();

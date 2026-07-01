@@ -1,7 +1,7 @@
 ﻿// HostedServices/EmailConsumerHostedService.cs
 using EventAPI.DTO.Messaging;
 using EventAPI.DTO.Shared;
-using EventAPI.EmailWorker.Services;
+using EventAPI.EmailWorker.Messaging;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
