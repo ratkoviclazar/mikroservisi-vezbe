@@ -19,5 +19,13 @@
 
         public const string EmailQueue = "email.queue";
         public const string EmailSent = "email.sent";
+
+        public const string SagaReplyQueue = "saga.reply.queue";
+        public const string SagaReferenceValidateRequestQueue = "saga.reference.validate.request";
+        public const string SagaLecturerValidateRequestQueue = "saga.lecturer.validate.request";
+        public const string SagaEventCreateRequestQueue = "saga.event.create.request";
+        public const string SagaEventDeleteRequestQueue = "saga.event.delete.request";
+        public const string SagaEventLectureCreateRequestQueue = "saga.eventlecture.create.request";
+        public const string SagaEventLectureDeleteRequestQueue = "saga.eventlecture.delete.request";
     }
 }

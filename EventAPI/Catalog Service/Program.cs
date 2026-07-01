@@ -12,6 +12,8 @@ builder.Services.AddSqlServer<ReferenceDbContext>(builder.Configuration.GetConne
 builder.Services.Configure<RabbitMqOptions>(
     builder.Configuration.GetSection(RabbitMqOptions.SectionName));
 
+builder.Services.AddHostedService<ReferenceDataValidationSagaConsumer>();
+
 builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
 builder.Services.AddHostedService<OutboxDispatcherHostedService>();
 var app = builder.Build();

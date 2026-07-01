@@ -42,6 +42,13 @@ builder.Services.AddScoped<IQueryHandler<FilterEventsQuery, List<EventListItemRe
 builder.Services.Configure<RabbitMqConsumerOptions>(
     builder.Configuration.GetSection(RabbitMqConsumerOptions.SectionName));
 
+builder.Services.Configure<SagaRabbitMqOptions>(
+    builder.Configuration.GetSection(SagaRabbitMqOptions.SectionName));
+
+builder.Services.AddHostedService<EventCreateSagaConsumer>();
+builder.Services.AddHostedService<EventLectureCreateSagaConsumer>();
+builder.Services.AddHostedService<DeleteEventSagaConsumer>();
+
 builder.Services.AddScoped<MessageDispatcher>();
 builder.Services.AddHostedService<RabbitMqConsumerHostedService>();
 

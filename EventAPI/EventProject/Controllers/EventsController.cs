@@ -46,13 +46,13 @@ public class EventsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<EventListItemReadModel>>> GetAll()
     {
-        _counter++;
+        //_counter++;
 
-        if (_counter % 10 != 0)
-        {
-            Console.WriteLine("Simulating server error for testing purposes.");
-            return StatusCode(500, "Simulated server error");
-        }
+        //if (_counter % 10 != 0)
+        //{
+        //    Console.WriteLine("Simulating server error for testing purposes.");
+        //    return StatusCode(500, "Simulated server error");
+        //}
 
         var result = await _getAllHandler.HandleAsync(new GetAllEventsQuery());
         return Ok(result);
@@ -61,12 +61,12 @@ public class EventsController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<ActionResult<EventDetailsReadModel>> GetById(int id)
     {
-        _timeoutCounter++;
-        if (_timeoutCounter % 2 == 0)
-        {
-            Console.WriteLine("Simulating timeout for testing purposes.");
-            await Task.Delay(7000);
-        }
+        //_timeoutCounter++;
+        //if (_timeoutCounter % 2 == 0)
+        //{
+        //    Console.WriteLine("Simulating timeout for testing purposes.");
+        //    await Task.Delay(7000);
+        //}
 
         var result = await _getByIdHandler.HandleAsync(new GetEventByIdQuery { Id = id });
 

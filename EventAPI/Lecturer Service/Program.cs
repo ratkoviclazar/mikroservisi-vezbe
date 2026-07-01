@@ -16,6 +16,8 @@ builder.Services.AddDbContext<LecturerDbContext>(options =>
 builder.Services.Configure<RabbitMqOptions>(
     builder.Configuration.GetSection(RabbitMqOptions.SectionName));
 
+builder.Services.AddHostedService<LecturerValidationSagaConsumer>();
+
 builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
 builder.Services.AddHostedService<OutboxDispatcherHostedService>();
 
