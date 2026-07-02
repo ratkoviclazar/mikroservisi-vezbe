@@ -106,7 +106,7 @@ namespace Lecturer_Service.Messaging
                 if (_channel is not null) await _channel.DisposeAsync();
                 if (_connection is not null) await _connection.DisposeAsync();
             }
-            catch { /* swallow on shutdown */ }
+            catch { }
             finally
             {
                 _initLock.Dispose();

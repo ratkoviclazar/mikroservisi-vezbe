@@ -1,0 +1,214 @@
+{
+  "Routes": [
+    {
+      "Key": "events-list",
+      "UpstreamPathTemplate": "/gateway/events",
+      "UpstreamHttpMethod": [ "GET", "POST" ],
+      "DownstreamPathTemplate": "/api/events",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5024
+        },
+        {
+          "Host": "localhost",
+          "Port": 5024
+        }
+      ],
+      "LoadBalancerOptions": {
+        "Type": "RoundRobin"
+      },
+      "RateLimitOptions": {
+        "EnableRateLimiting": true,
+        "Period": "1m",
+        "PeriodTimespan": 60,
+        "Limit": 20
+      },
+      "FileCacheOptions": {
+        "TtlSeconds": 30,
+        "Region": "events"
+      },
+      "AddHeadersToRequest": {
+        "X-Forwarded-By": "OcelotApiGateway"
+      },
+      "AddHeadersToResponse": {
+        "X-Gateway-Response": "OcelotApiGateway"
+      }
+    },
+    {
+      "Key": "event-by-id",
+      "UpstreamPathTemplate": "/gateway/events/{id}",
+      "UpstreamHttpMethod": [ "GET", "PUT", "DELETE" ],
+      "DownstreamPathTemplate": "/api/events/{id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5024
+        }
+      ],
+      "RateLimitOptions": {
+        "EnableRateLimiting": true,
+        "Period": "1m",
+        "PeriodTimespan": 60,
+        "Limit": 30
+      },
+      "FileCacheOptions": {
+        "TtlSeconds": 30,
+        "Region": "event-by-id"
+      },
+      "AddHeadersToRequest": {
+        "X-Forwarded-By": "OcelotApiGateway"
+      },
+      "AddHeadersToResponse": {
+        "X-Gateway-Response": "OcelotApiGateway"
+      }
+    },
+    {
+      "Key": "locations-list",
+      "UpstreamPathTemplate": "/gateway/locations",
+      "UpstreamHttpMethod": [ "GET", "POST" ],
+      "DownstreamPathTemplate": "/api/locations",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5240
+        }
+      ],
+      "RateLimitOptions": {
+        "EnableRateLimiting": true,
+        "Period": "1m",
+        "PeriodTimespan": 60,
+        "Limit": 20
+      },
+      "FileCacheOptions": {
+        "TtlSeconds": 60,
+        "Region": "locations"
+      },
+      "AddHeadersToRequest": {
+        "X-Forwarded-By": "OcelotApiGateway"
+      },
+      "AddHeadersToResponse": {
+        "X-Gateway-Response": "OcelotApiGateway"
+      }
+    },
+    {
+      "Key": "location-by-id",
+      "UpstreamPathTemplate": "/gateway/locations/{id}",
+      "UpstreamHttpMethod": [ "GET", "PUT", "DELETE" ],
+      "DownstreamPathTemplate": "/api/locations/{id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5240
+        }
+      ]
+    },
+    {
+      "Key": "event-types-list",
+      "UpstreamPathTemplate": "/gateway/event-types",
+      "UpstreamHttpMethod": [ "GET", "POST" ],
+      "DownstreamPathTemplate": "/api/event-types",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5240
+        }
+      ],
+      "FileCacheOptions": {
+        "TtlSeconds": 60,
+        "Region": "event-types"
+      }
+    },
+    {
+      "Key": "event-type-by-id",
+      "UpstreamPathTemplate": "/gateway/event-types/{id}",
+      "UpstreamHttpMethod": [ "GET", "PUT", "DELETE" ],
+      "DownstreamPathTemplate": "/api/event-types/{id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5240
+        }
+      ]
+    },
+    {
+      "Key": "lecturers-list",
+      "UpstreamPathTemplate": "/gateway/lecturers",
+      "UpstreamHttpMethod": [ "GET", "POST" ],
+      "DownstreamPathTemplate": "/api/lecturers",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5129
+        }
+      ],
+      "RateLimitOptions": {
+        "EnableRateLimiting": true,
+        "Period": "1m",
+        "PeriodTimespan": 60,
+        "Limit": 20
+      },
+      "AddHeadersToRequest": {
+        "X-Forwarded-By": "OcelotApiGateway"
+      },
+      "AddHeadersToResponse": {
+        "X-Gateway-Response": "OcelotApiGateway"
+      }
+    },
+    {
+      "Key": "lecturer-by-id",
+      "UpstreamPathTemplate": "/gateway/lecturers/{id}",
+      "UpstreamHttpMethod": [ "GET", "PUT", "DELETE" ],
+      "DownstreamPathTemplate": "/api/lecturers/{id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5129
+        }
+      ]
+    },
+    {
+      "Key": "sagas-list",
+      "UpstreamPathTemplate": "/gateway/sagas",
+      "UpstreamHttpMethod": [ "GET", "POST" ],
+      "DownstreamPathTemplate": "/api/sagas",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5267
+        }
+      ]
+    },
+    {
+      "Key": "saga-by-id",
+      "UpstreamPathTemplate": "/gateway/sagas/{id}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "DownstreamPathTemplate": "/api/sagas/{id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5267
+        }
+      ]
+    }
+  ],
+  "GlobalConfiguration": {
+    "BaseUrl": "https://localhost:7080",
+    "RateLimitOptions": {
+      "DisableRateLimitHeaders": false,
+      "QuotaExceededMessage": "Rate limit exceeded through API Gateway.",
+      "HttpStatusCode": 429,
+      "ClientIdHeader": "X-Api-Key"
+    }
+  }
+}
